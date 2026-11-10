@@ -1,0 +1,37 @@
+name: Build Kernel & Push to Cachix
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 3 * * 1' # Автоматическая пересборка раз в неделю по понедельникам
+  workflow_dispatch:
+
+jobs:
+  build-and-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateColor/nix-installer-action@main
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: cachyoskernel-bbr3-v3
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Update flake inputs (on schedule)
+        if: github.event_name == 'schedule'
+        run: |
+          nix flake update
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: bump kernel flake inputs" || exit 0
+          git push
+
+      - name: Build CachyOS BBRv3 Kernel
+        run: |
+          nix build .#kernel --print-build-logs
