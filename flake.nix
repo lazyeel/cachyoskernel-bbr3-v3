@@ -22,7 +22,26 @@
         overlays = [ nix-cachyos-kernel.overlays.default ];
       };
 
-      customKernel = pkgs.cachyosKernels.linux-cachyos-server.override {
+      rawKernelVersion = pkgs.cachyosKernels.linux-cachyos-server.version;
+      kernelSeries = pkgs.lib.versions.majorMinor rawKernelVersion;
+
+      supportedSeries = "7.3";
+
+      _guard = assert pkgs.lib.assertMsg (kernelSeries == supportedSeries) ''
+        ════════════════════════════
+        FAIL-FAST GUARD: Kernel versioning error:
+        CachyOS upstream has updated to branch: ${kernelSeries}
+        The file src/tcp_bbr.c in the repository is only verified for branch: ${supportedSeries}
+
+        The build was halted to prevent pushing an incompatible kernel to the binary cache.
+        Actions:
+        1. Obtain the adapted tcp_bbr.c for the ${kernelSeries} branch (e.g., from XanMod).
+        2. Replace src/tcp_bbr.c in the repository with it.
+        3. Change supportedSeries = "${kernelSeries}" in flake.nix.
+        ════════════════════════════
+      ''; true;
+
+      customKernel = assert _guard; pkgs.cachyosKernels.linux-cachyos-server.override {
         processorOpt = "x86_64-v3";
         bbr3 = true;
         hzTicks = "300";
