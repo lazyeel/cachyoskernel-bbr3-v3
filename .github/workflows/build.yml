@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: '0 3 * * 1' # Автоматическая пересборка раз в неделю по понедельникам
+    - cron: '0 3 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -14,8 +14,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+      - name: Install Nix (Official Upstream)
+        uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
 
       - name: Setup Cachix
         uses: cachix/cachix-action@v15
